@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RugWarfare</title>
+    <title>RugWarfare - The Ultimate Memecoin</title>
+    
+    <!-- Maximum size favicons -->
+    <link rel="icon" type="image/png" href="images/tank.png" sizes="512x512">
+    <link rel="icon" type="image/png" href="images/tank.png" sizes="256x256">
+    <link rel="icon" type="image/png" href="images/tank.png" sizes="192x192">
+    <link rel="apple-touch-icon" href="images/tank.png" sizes="512x512">
+    <meta name="msapplication-TileImage" content="images/tank.png">
+    <meta name="msapplication-TileColor" content="#ff8585">
+    
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -631,6 +640,21 @@
             opacity: 0;
             pointer-events: none;
         }
+
+        .logo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 60px;  /* You can adjust this size */
+            height: 60px;
+            z-index: 1001;  /* Above the nav bar */
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
@@ -646,6 +670,11 @@
                 <div class="progress-bar"></div>
             </div>
         </div>
+    </div>
+
+    <!-- Add this right after the body tag -->
+    <div class="logo">
+        <img src="images/tank.png" alt="RugWarfare Tank">
     </div>
 
     <!-- Navigation -->
