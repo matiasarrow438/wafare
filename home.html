@@ -722,13 +722,50 @@
 
         function copyCA() {
             const ca = document.getElementById('ca-text').textContent;
-            navigator.clipboard.writeText(ca).then(() => {
-                const copyButton = document.querySelector('.copy-button');
-                copyButton.textContent = 'Copied!';
-                setTimeout(() => {
-                    copyButton.textContent = 'Copy';
-                }, 2000);
-            });
+            
+            // Try the modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(ca)
+                    .then(() => {
+                        updateCopyButton('Copied!');
+                    })
+                    .catch(() => {
+                        // Fallback for clipboard API failure
+                        fallbackCopyToClipboard(ca);
+                    });
+            } else {
+                // Fallback for non-secure contexts or older browsers
+                fallbackCopyToClipboard(ca);
+            }
+        }
+
+        function fallbackCopyToClipboard(text) {
+            // Create temporary textarea
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            
+            try {
+                textArea.select();
+                document.execCommand('copy');
+                textArea.remove();
+                updateCopyButton('Copied!');
+            } catch (err) {
+                console.error('Failed to copy text:', err);
+                textArea.remove();
+                updateCopyButton('Failed to copy');
+            }
+        }
+
+        function updateCopyButton(text) {
+            const copyButton = document.querySelector('.copy-button');
+            copyButton.textContent = text;
+            setTimeout(() => {
+                copyButton.textContent = 'Copy';
+            }, 2000);
         }
     </script>
 </body>
