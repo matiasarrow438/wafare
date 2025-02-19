@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RugWarfare Tank Battle</title>
+    <link rel="icon" type="image/png" href="images/tank.png" sizes="512x512">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            padding: 0 300px 0 0; /* Add padding on the right */
+        }
+
+        #gameCanvas {
+            border: 3px solid #ff6b6b;
+            background: #2d2d2d;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .home-button {
+            position: fixed;
+            top: 15px;
+            left: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 20px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .ui-container {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 2px solid #ff6b6b;
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #33ff33);
+            transition: width 0.3s ease;
+        }
+
+        .level-counter {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+
+        .lives-counter {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .life-icon {
+            color: #ff6b6b;
+            font-size: 1.4em;
+        }
+
+        .lives-counter, #lives-display, .level-counter, #level-number {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .leaderboard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .leaderboard-content {
+            background: #2d2d2d;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 3px solid #ff6b6b;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .leaderboard-content h2 {
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .leaderboard-content p {
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        #score-form {
+            margin-bottom: 30px;
+        }
+
+        #player-name {
+            padding: 10px;
+            border-radius: 5px;
+            border: 2px solid #ff6b6b;
+            background: #1a1a1a;
+            color: white;
+            margin-right: 10px;
+            font-size: 1em;
+        }
+
+        #score-form button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #score-form button:hover {
+            transform: scale(1.05);
+        }
+
+        .scores-list {
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .scores-list h3 {
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #444;
+            color: white;
+        }
+
+        .score-item:nth-child(even) {
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .side-leaderboard {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 25px;
+            border-radius: 20px;
+            border: 3px solid #ff6b6b;
+            width: 280px;
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .leaderboard-header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .leaderboard-header h2 {
+            color: #ff6b6b;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.8em;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.3);
+        }
+
+        .header-line {
+            height: 3px;
+            background: linear-gradient(90deg, 
+                rgba(255,107,107,0) 0%, 
+                rgba(255,107,107,1) 50%, 
+                rgba(255,107,107,0) 100%);
+            margin: 15px 0;
+        }
+
+        .side-score-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            color: white;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: transform 0.2s, background 0.3s;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .side-score-item:hover {
+            transform: translateX(-5px);
+            background: rgba(255, 107, 107, 0.15);
+        }
+
+        .side-score-item:nth-child(1) {
+            background: linear-gradient(45deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+
+        .side-score-item:nth-child(2) {
+            background: linear-gradient(45deg, rgba(192, 192, 192, 0.2), rgba(192, 192, 192, 0.1));
+            border: 1px solid rgba(192, 192, 192, 0.3);
+        }
+
+        .side-score-item:nth-child(3) {
+            background: linear-gradient(45deg, rgba(205, 127, 50, 0.2), rgba(205, 127, 50, 0.1));
+            border: 1px solid rgba(205, 127, 50, 0.3);
+        }
+
+        .side-score-rank {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 25px;
+            height: 25px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+
+        .side-score-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .side-score-level {
+            background: rgba(255, 107, 107, 0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.9em;
+            color: #ff6b6b;
+        }
+
+        /* Prevent text selection everywhere */
+        * {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+        }
+
+        .game-over-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .restart-button, .home-button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .restart-button:hover, .home-button:hover {
+            transform: scale(1.05);
+        }
+
+        .home-button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+        }
+
+        /* Update existing home button style */
+        .home-button-top {
+            position: fixed;
+            top: 15px;
+            left: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 20px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            user-select: none;
+        }
+
+        /* Make sure input field is still selectable */
+        #player-name {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+        }
+
+        /* Update leaderboard styles to ensure no text selection */
+        .leaderboard-content h2,
+        .leaderboard-content p,
+        .scores-list h3,
+        .score-item,
+        .leaderboard-header h2,
+        .header-line,
+        .side-score-item {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: text !important;
+        }
+
+        .tutorial-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .tutorial-content {
+            background: #2d2d2d;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 3px solid #ff6b6b;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .tutorial-content h2 {
+            color: #ff6b6b;
+            margin-bottom: 25px;
+            font-size: 2em;
+        }
+
+        .tutorial-instructions {
+            color: white;
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .tutorial-instructions p {
+            margin: 15px 0;
+            font-size: 1.1em;
+        }
+
+        .tutorial-instructions ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+
+        .tutorial-instructions ul li {
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .tutorial-instructions ul li:before {
+            content: "•";
+            color: #ff6b6b;
+            font-weight: bold;
+            position: absolute;
+            left: -15px;
+        }
+
+        .tutorial-instructions strong {
+            color: #ff6b6b;
+        }
+
+        .start-button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .start-button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <a href="home.html" class="home-button-top">Back to Home</a>
+    
+    <!-- UI Container -->
+    <div class="ui-container">
+        <div class="level-counter">Level: <span id="level-number">1</span></div>
+        <div class="lives-counter">Lives: <span id="lives-display">3</span></div>
+    </div>
+
+    <div id="leaderboard" style="display: none;" class="leaderboard-overlay">
+        <div class="leaderboard-content">
+            <h2>Game Over!</h2>
+            <p>You reached Level <span id="final-level">0</span></p>
+            <form id="score-form">
+                <input type="text" id="player-name" maxlength="15" placeholder="Enter your name" required>
+                <button type="submit">Submit Score</button>
+            </form>
+            <div class="scores-list">
+                <h3>Top Scores</h3>
+                <div id="scores-container"></div>
+            </div>
+            <div class="game-over-buttons">
+                <button onclick="location.reload()" class="restart-button">Start Over</button>
+                <a href="home.html" class="home-button">Home</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="side-leaderboard">
+        <div class="leaderboard-header">
+            <h2>🏆 Top Players</h2>
+            <div class="header-line"></div>
+        </div>
+        <div id="side-scores-container"></div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Add the tutorial popup HTML -->
+    <div id="tutorial-overlay" class="tutorial-overlay">
+        <div class="tutorial-content">
+            <h2>How to Play</h2>
+            <div class="tutorial-instructions">
+                <p><strong>Movement:</strong> Use WASD or Arrow Keys to move</p>
+                <p><strong>Aim:</strong> Move your mouse to aim</p>
+                <p><strong>Shoot:</strong> Click to fire projectiles</p>
+                <p><strong>Strategy:</strong></p>
+                <ul>
+                    <li>Your projectiles can bounce off walls</li>
+                    <li>Destroy all enemy tanks to advance</li>
+                    <li>You have 3 lives - make them count!</li>
+                </ul>
+            </div>
+            <button id="start-game" class="start-button">Start Game</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        canvas.width = 800;
+        canvas.height = 600;
+
+        // Game objects
+        class Obstacle {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+            }
+
+            draw() {
+                ctx.fillStyle = '#555555';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                // Add a slight 3D effect
+                ctx.fillStyle = '#666666';
+                ctx.fillRect(this.x, this.y, this.width, 5);
+            }
+
+            checkCollision(missile) {
+                return missile.x > this.x && 
+                       missile.x < this.x + this.width &&
+                       missile.y > this.y && 
+                       missile.y < this.y + this.height;
+            }
+        }
+
+        class Tank {
+            constructor(x, y, color, controls, isPlayer = false) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.angle = 0;
+                this.speed = 3;
+                this.rotationSpeed = 3;
+                this.width = 30;
+                this.height = 20;
+                this.controls = controls;
+                this.missiles = [];
+                this.isPlayer = isPlayer;
+                this.isDead = false;
+                this.shootCooldown = isPlayer ? 0 : Math.random() * 90;
+                this.maxShootCooldown = isPlayer ? 0 : 120;
+                this.isInvincible = false;
+                this.invincibilityTimer = 0;
+                this.invincibilityDuration = 180; // 3 seconds at 60fps
+                this.hitFlashTimer = 0;
+                
+                if (isPlayer) {
+                    this.lives = 3;
+                }
+            }
+
+            update() {
+                if (this.isDead) return;
+
+                // Update invincibility
+                if (this.isInvincible) {
+                    this.invincibilityTimer--;
+                    if (this.invincibilityTimer <= 0) {
+                        this.isInvincible = false;
+                    }
+                }
+
+                if (!this.isPlayer) {
+                    // Enemy AI targeting with progressive difficulty
+                    if (currentLevel >= 2) {
+                        const dx = player.x - this.x;
+                        const dy = player.y - this.y;
+                        const targetAngle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+                        
+                        // Progressive accuracy based on level
+                        const accuracyMultiplier = Math.min(1, 0.2 + (currentLevel * 0.05));
+                        const maxRandomOffset = 40 * (1 - accuracyMultiplier); // Decreases as levels progress
+                        const randomOffset = (Math.random() - 0.5) * maxRandomOffset;
+                        
+                        const angleDiff = (targetAngle + randomOffset) - this.angle;
+                        this.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), this.rotationSpeed * accuracyMultiplier);
+
+                        // Shooting frequency increases with level
+                        this.shootCooldown--;
+                        const accuracyThreshold = 30 * (1 - accuracyMultiplier); // Tighter threshold at higher levels
+                        if (this.shootCooldown <= 0 && Math.abs(angleDiff) < accuracyThreshold) {
+                            this.shoot();
+                            // Shooting delay decreases with level
+                            this.shootCooldown = this.maxShootCooldown + (Math.random() * 120 * (1 - accuracyMultiplier));
+                        }
+                    }
+                } else {
+                    // Player movement code
+                    let dx = 0;
+                    let dy = 0;
+
+                    // Make controls case-insensitive
+                    if (keys[this.controls.up.toLowerCase()]) dy -= 1;
+                    if (keys[this.controls.down.toLowerCase()]) dy += 1;
+                    if (keys[this.controls.left.toLowerCase()]) dx -= 1;
+                    if (keys[this.controls.right.toLowerCase()]) dx += 1;
+
+                    if (dx !== 0 && dy !== 0) {
+                        const magnitude = Math.sqrt(dx * dx + dy * dy);
+                        dx = dx / magnitude;
+                        dy = dy / magnitude;
+                    }
+
+                    // Update position with collision check
+                    const newX = this.x + dx * this.speed;
+                    const newY = this.y + dy * this.speed;
+
+                    // Check obstacle collision before moving
+                    let canMove = true;
+                    obstacles.forEach(obstacle => {
+                        if (checkTankObstacleCollision(
+                            {x: newX, y: newY, width: this.width, height: this.height},
+                            obstacle
+                        )) {
+                            canMove = false;
+                        }
+                    });
+
+                    if (canMove) {
+                        this.x = newX;
+                        this.y = newY;
+                    }
+
+                    // Update tank angle based on cursor position
+                    const dx2 = mouseX - this.x;
+                    const dy2 = mouseY - this.y;
+                    this.angle = Math.atan2(dy2, dx2) * 180 / Math.PI + 90;
+                }
+
+                // Keep tank within bounds
+                const borderWidth = 3;
+                this.x = Math.max(this.width/2 + borderWidth, 
+                                 Math.min(canvas.width - this.width/2 - borderWidth, this.x));
+                this.y = Math.max(this.height/2 + borderWidth, 
+                                 Math.min(canvas.height - this.height/2 - borderWidth, this.y));
+            }
+
+            hit() {
+                if (this.isPlayer) {
+                    if (this.isInvincible) return false;
+                    this.lives--;
+                    this.hitFlashTimer = 15; // Flash red for 15 frames
+                    // Update lives display without selection
+                    const livesDisplay = document.getElementById('lives-display');
+                    livesDisplay.textContent = this.lives;
+                    if (this.lives <= 0) {
+                        this.isDead = true;
+                        gameOver();
+                        return true;
+                    }
+                } else {
+                    this.isDead = true;
+                    return true;
+                }
+                return false;
+            }
+
+            draw() {
+                if (this.isDead) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle * Math.PI / 180);
+                
+                // Draw hit flash effect
+                if (this.hitFlashTimer > 0) {
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.fillRect(-this.width/2 - 5, -this.height/2 - 5, 
+                                this.width + 10, this.height + 10);
+                    this.hitFlashTimer--;
+                }
+
+                // Tank body with invincibility flash
+                if (this.isInvincible) {
+                    ctx.fillStyle = this.invincibilityTimer % 10 < 5 ? this.color : 'rgba(255, 255, 255, 0.7)';
+                } else {
+                    ctx.fillStyle = this.color;
+                }
+                
+                // Tank body
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                
+                // Tank cannon
+                ctx.fillRect(-2, -this.height/2, 4, -15);
+                
+                ctx.restore();
+            }
+
+            shoot() {
+                if (this.isPlayer) {
+                    // Player shooting with no limits or cooldown
+                    const angle = Math.atan2(mouseY - this.y, mouseX - this.x) * 180 / Math.PI + 90;
+                    this.missiles.push(new Missile(
+                        this.x + Math.cos((angle - 90) * Math.PI / 180) * 20,
+                        this.y + Math.sin((angle - 90) * Math.PI / 180) * 20,
+                        angle,
+                        this.color,
+                        true
+                    ));
+                } else {
+                    // Enemy shooting (unchanged)
+                    if (this.missiles.length < 3) {
+                        this.missiles.push(new Missile(
+                            this.x + Math.cos((this.angle - 90) * Math.PI / 180) * 20,
+                            this.y + Math.sin((this.angle - 90) * Math.PI / 180) * 20,
+                            this.angle,
+                            this.color,
+                            false
+                        ));
+                    }
+                }
+            }
+        }
+
+        class Missile {
+            constructor(x, y, angle, color, isPlayerMissile) {
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.speed = 5;
+                this.color = color;
+                this.radius = 3;
+                this.bounces = 0;
+                this.maxBounces = isPlayerMissile ? 3 : 1; // Enemy missiles don't bounce
+                this.velocityX = Math.cos((angle - 90) * Math.PI / 180) * this.speed;
+                this.velocityY = Math.sin((angle - 90) * Math.PI / 180) * this.speed;
+                this.isPlayerMissile = isPlayerMissile;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.fillStyle = this.color;
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            update() {
+                let nextX = this.x + this.velocityX;
+                let nextY = this.y + this.velocityY;
+                const borderWidth = 3;
+
+                if (this.isPlayerMissile) {
+                    // Player missile bouncing logic (unchanged)
+                    if (nextX - this.radius <= borderWidth || nextX + this.radius >= canvas.width - borderWidth) {
+                        this.velocityX = -this.velocityX;
+                        this.bounces++;
+                        nextX = this.x;
+                    }
+                    
+                    if (nextY - this.radius <= borderWidth || nextY + this.radius >= canvas.height - borderWidth) {
+                        this.velocityY = -this.velocityY;
+                        this.bounces++;
+                        nextY = this.y;
+                    }
+
+                    // Obstacle collision for player missiles
+                    obstacles.forEach(obstacle => {
+                        if (obstacle.checkCollision({x: nextX, y: nextY})) {
+                            const dx = nextX - (obstacle.x + obstacle.width / 2);
+                            const dy = nextY - (obstacle.y + obstacle.height / 2);
+                            
+                            if (Math.abs(dx) > Math.abs(dy)) {
+                                this.velocityX = -this.velocityX;
+                            } else {
+                                this.velocityY = -this.velocityY;
+                            }
+                            
+                            this.bounces++;
+                            nextX = this.x;
+                            nextY = this.y;
+                        }
+                    });
+                } else {
+                    // Enemy missiles - destroy on collision
+                    if (nextX - this.radius <= borderWidth || 
+                        nextX + this.radius >= canvas.width - borderWidth ||
+                        nextY - this.radius <= borderWidth || 
+                        nextY + this.radius >= canvas.height - borderWidth ||
+                        obstacles.some(obstacle => obstacle.checkCollision({x: nextX, y: nextY}))) {
+                        this.bounces = this.maxBounces;
+                        return;
+                    }
+                }
+
+                this.x = nextX;
+                this.y = nextY;
+            }
+        }
+
+        // Collision detection helper
+        function checkTankObstacleCollision(tank, obstacle) {
+            return tank.x + tank.width/2 > obstacle.x &&
+                   tank.x - tank.width/2 < obstacle.x + obstacle.width &&
+                   tank.y + tank.height/2 > obstacle.y &&
+                   tank.y - tank.height/2 < obstacle.y + obstacle.height;
+        }
+
+        // Extended levels array
+        const levels = Array.from({ length: 150 }, (_, index) => {
+            const level = index + 1;
+            
+            // Calculate number of enemies based on level
+            const numEnemies = Math.min(2 + Math.floor(level / 5), 12); // Max 12 enemies
+            
+            // Calculate number of obstacles based on level
+            const numObstacles = Math.min(2 + Math.floor(level / 10), 8); // Max 8 obstacles
+            
+            // Generate enemies with different positions
+            const enemies = Array.from({ length: numEnemies }, () => {
+                return {
+                    x: 400 + Math.random() * 300, // Random x between 400-700
+                    y: 100 + Math.random() * 400, // Random y between 100-500
+                    color: '#4287f5'
+                };
+            });
+            
+            // Generate obstacles with different layouts
+            const obstacles = Array.from({ length: numObstacles }, () => {
+                const isVertical = Math.random() > 0.5;
+                return {
+                    x: 200 + Math.random() * 400, // Random x between 200-600
+                    y: 100 + Math.random() * 400, // Random y between 100-500
+                    width: isVertical ? 50 : 100 + Math.random() * 100,
+                    height: isVertical ? 100 + Math.random() * 100 : 50
+                };
+            });
+            
+            return {
+                name: `Level ${level}`,
+                enemies,
+                obstacles
+            };
+        });
+
+        let currentLevel = 0;
+        let enemies = [];
+        let obstacles = [];
+
+        // Helper function to check if a position is safe (not inside obstacles)
+        function isSafePosition(x, y, width, height) {
+            for (let obstacle of obstacles) {
+                if (checkTankObstacleCollision(
+                    {x, y, width, height},
+                    obstacle
+                )) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Helper function to find a safe spawn position
+        function findSafePosition(baseX, baseY) {
+            const offsets = [
+                {x: 0, y: 0},
+                {x: 50, y: 0},
+                {x: -50, y: 0},
+                {x: 0, y: 50},
+                {x: 0, y: -50}
+            ];
+
+            for (let offset of offsets) {
+                const newX = baseX + offset.x;
+                const newY = baseY + offset.y;
+                if (isSafePosition(newX, newY, 30, 20)) {
+                    return {x: newX, y: newY};
+                }
+            }
+            return {x: 100, y: 300}; // Default safe position if no others found
+        }
+
+        function initLevel(levelIndex) {
+            const safePos = findSafePosition(100, 300);
+            player.x = safePos.x;
+            player.y = safePos.y;
+            
+            // Set initial invincibility
+            player.isInvincible = true;
+            player.invincibilityTimer = player.invincibilityDuration;
+            
+            enemies = [];
+            obstacles = [];
+            updateLevelCounter(levelIndex);
+            
+            // Create obstacles first
+            levels[levelIndex].obstacles.forEach(obs => {
+                obstacles.push(new Obstacle(obs.x, obs.y, obs.width, obs.height));
+            });
+
+            // Create enemies in safe positions
+            levels[levelIndex].enemies.forEach(enemy => {
+                const safePos = findSafePosition(enemy.x, enemy.y);
+                enemies.push(new Tank(safePos.x, safePos.y, enemy.color, {}));
+            });
+        }
+
+        // Create player
+        const player = new Tank(100, 300, '#ff6b6b', {
+            up: 'w',
+            down: 's',
+            left: 'a',
+            right: 'd',
+            shoot: ' '
+        }, true);
+
+        // Modified collision detection
+        function checkCollisions() {
+            // Player missiles
+            player.missiles.forEach((missile, missileIndex) => {
+                enemies.forEach((enemy) => {
+                    if (!enemy.isDead) {
+                        const dx = missile.x - enemy.x;
+                        const dy = missile.y - enemy.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < enemy.width/2 + missile.radius) {
+                            if (enemy.hit()) {
+                                checkLevelComplete();
+                            }
+                            player.missiles.splice(missileIndex, 1);
+                        }
+                    }
+                });
+            });
+
+            // Enemy missiles
+            enemies.forEach(enemy => {
+                enemy.missiles.forEach((missile, missileIndex) => {
+                    if (!player.isDead) {
+                        const dx = missile.x - player.x;
+                        const dy = missile.y - player.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < player.width/2 + missile.radius) {
+                            player.hit();
+                            enemy.missiles.splice(missileIndex, 1);
+                        }
+                    }
+                });
+            });
+        }
+
+        function checkLevelComplete() {
+            if (enemies.every(enemy => enemy.isDead)) {
+                if (currentLevel < levels.length - 1) {
+                    currentLevel++;
+                    setTimeout(() => {
+                        initLevel(currentLevel);
+                    }, 1000);
+                } else {
+                    // Game complete!
+                    console.log("Game Complete!");
+                }
+            }
+        }
+
+        // Key handling
+        const keys = {};
+        document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+        document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+        // UI Update Functions
+        function updateLivesDisplay(lives) {
+            const livesDisplay = document.getElementById('lives-display');
+            livesDisplay.textContent = lives;
+            // Prevent text selection
+            livesDisplay.style.userSelect = 'none';
+        }
+
+        function updateLevelCounter(level) {
+            const levelNumber = document.getElementById('level-number');
+            levelNumber.textContent = level + 1;
+            // Prevent text selection
+            levelNumber.style.userSelect = 'none';
+        }
+
+        function gameOver() {
+            const leaderboard = document.getElementById('leaderboard');
+            const finalLevel = document.getElementById('final-level');
+            finalLevel.textContent = currentLevel + 1;
+            leaderboard.style.display = 'flex';
+
+            // Handle score submission
+            document.getElementById('score-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('player-name').value;
+                
+                // Send score to server
+                ws.send(JSON.stringify({
+                    name: name,
+                    level: currentLevel + 1
+                }));
+
+                // Disable form after submission
+                e.target.style.display = 'none';
+            };
+        }
+
+        // Modified game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!player.isDead) {
+                // Draw obstacles first
+                obstacles.forEach(obstacle => obstacle.draw());
+
+                player.update();
+                player.draw();
+
+                enemies.forEach(enemy => {
+                    enemy.update();
+                    enemy.draw();
+                });
+
+                // Update and draw ALL missiles
+                [...player.missiles, ...enemies.flatMap(e => e.missiles)].forEach((missile, index) => {
+                    missile.update();
+                    missile.draw();
+                });
+
+                // Clean up missiles that have bounced too many times
+                player.missiles = player.missiles.filter(m => m.bounces < m.maxBounces);
+                enemies.forEach(enemy => {
+                    enemy.missiles = enemy.missiles.filter(m => m.bounces < m.maxBounces);
+                });
+
+                checkCollisions();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Mouse tracking
+        let mouseX = 0;
+        let mouseY = 0;
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
+        // Mouse click for shooting
+        canvas.addEventListener('click', (e) => {
+            if (!player.isDead) {
+                e.preventDefault(); // Prevent any default behaviors
+                player.shoot();
+            }
+        }, { passive: false }); // Optimize for quick response
+
+        // Initialize game
+        initLevel(0);
+        updateLivesDisplay(3);
+        gameLoop();
+
+        // WebSocket connection
+        const ws = new WebSocket('wss://your-backend-url/ws');
+        
+        ws.onmessage = (event) => {
+            const scores = JSON.parse(event.data);
+            updateLeaderboard(scores);
+        };
+
+        function updateLeaderboard(scores) {
+            // Update the game over leaderboard
+            const container = document.getElementById('scores-container');
+            container.innerHTML = scores
+                .sort((a, b) => b.level - a.level)
+                .slice(0, 10)
+                .map((score, index) => `
+                    <div class="score-item">
+                        <span>#${index + 1} ${score.name}</span>
+                        <span>Level ${score.level}</span>
+                    </div>
+                `)
+                .join('');
+
+            // Update the side leaderboard
+            const sideContainer = document.getElementById('side-scores-container');
+            sideContainer.innerHTML = scores
+                .sort((a, b) => b.level - a.level)
+                .slice(0, 10)
+                .map((score, index) => `
+                    <div class="side-score-item">
+                        <div class="side-score-info">
+                            <span class="side-score-rank">${index + 1}</span>
+                            <span>${score.name}</span>
+                        </div>
+                        <span class="side-score-level">Level ${score.level}</span>
+                    </div>
+                `)
+                .join('');
+        }
+
+        // Show tutorial on page load
+        window.addEventListener('load', () => {
+            const tutorial = document.getElementById('tutorial-overlay');
+            const startButton = document.getElementById('start-game');
+            
+            // Pause game until tutorial is closed
+            if (typeof gameLoop !== 'undefined') {
+                cancelAnimationFrame(gameLoop);
+            }
+
+            startButton.addEventListener('click', () => {
+                tutorial.style.display = 'none';
+                // Resume game
+                requestAnimationFrame(gameLoop);
+            });
+        });
+    </script>
+</body>
+</html>
