@@ -20,6 +20,7 @@
         #gameCanvas {
             border: 3px solid #ff6b6b;
             background: #2d2d2d;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
         }
 
         .home-button {
@@ -152,6 +153,7 @@
                 this.shootCooldown = 0;
                 this.maxShootCooldown = 90; // Increased cooldown for enemies
                 this.targetAngle = 0; // For cursor aiming
+                this.accuracy = 1; // Base accuracy, will be modified by level
                 
                 // Player specific properties
                 if (isPlayer) {
@@ -163,22 +165,27 @@
                 if (this.isDead) return;
 
                 if (!this.isPlayer) {
-                    // Less accurate enemy AI targeting
+                    // Enemy AI targeting with progressive difficulty
                     if (currentLevel >= 2) {
                         const dx = player.x - this.x;
                         const dy = player.y - this.y;
                         const targetAngle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
                         
-                        // Add some randomness to targeting
-                        const randomOffset = (Math.random() - 0.5) * 20; // Random angle offset
+                        // Progressive accuracy based on level
+                        const accuracyMultiplier = Math.min(1, 0.2 + (currentLevel * 0.05));
+                        const maxRandomOffset = 40 * (1 - accuracyMultiplier); // Decreases as levels progress
+                        const randomOffset = (Math.random() - 0.5) * maxRandomOffset;
+                        
                         const angleDiff = (targetAngle + randomOffset) - this.angle;
-                        this.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), this.rotationSpeed);
+                        this.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), this.rotationSpeed * accuracyMultiplier);
 
-                        // Shoot less frequently and with less accuracy
+                        // Shooting frequency increases with level
                         this.shootCooldown--;
-                        if (this.shootCooldown <= 0 && Math.abs(angleDiff) < 30) {
+                        const accuracyThreshold = 30 * (1 - accuracyMultiplier); // Tighter threshold at higher levels
+                        if (this.shootCooldown <= 0 && Math.abs(angleDiff) < accuracyThreshold) {
                             this.shoot();
-                            this.shootCooldown = this.maxShootCooldown + Math.random() * 60; // Random delay
+                            // Shooting delay decreases with level
+                            this.shootCooldown = this.maxShootCooldown + (Math.random() * 120 * (1 - accuracyMultiplier));
                         }
                     }
                 } else {
@@ -224,8 +231,11 @@
                 }
 
                 // Keep tank within bounds
-                this.x = Math.max(this.width/2, Math.min(canvas.width - this.width/2, this.x));
-                this.y = Math.max(this.height/2, Math.min(canvas.height - this.height/2, this.y));
+                const borderWidth = 3;
+                this.x = Math.max(this.width/2 + borderWidth, 
+                                 Math.min(canvas.width - this.width/2 - borderWidth, this.x));
+                this.y = Math.max(this.height/2 + borderWidth, 
+                                 Math.min(canvas.height - this.height/2 - borderWidth, this.y));
             }
 
             hit() {
@@ -287,6 +297,8 @@
                 this.radius = 3;
                 this.bounces = 0;
                 this.maxBounces = 3;
+                this.velocityX = Math.cos((angle - 90) * Math.PI / 180) * this.speed;
+                this.velocityY = Math.sin((angle - 90) * Math.PI / 180) * this.speed;
             }
 
             draw() {
@@ -298,46 +310,51 @@
 
             update() {
                 // Calculate next position
-                let nextX = this.x + Math.cos((this.angle - 90) * Math.PI / 180) * this.speed;
-                let nextY = this.y + Math.sin((this.angle - 90) * Math.PI / 180) * this.speed;
+                let nextX = this.x + this.velocityX;
+                let nextY = this.y + this.velocityY;
 
-                // Wall bouncing
-                if (nextX <= 0 || nextX >= canvas.width) {
-                    this.angle = 180 - this.angle;
+                // Border collision (including the 3px border)
+                const borderWidth = 3;
+                if (nextX - this.radius <= borderWidth || nextX + this.radius >= canvas.width - borderWidth) {
+                    this.velocityX = -this.velocityX; // Reverse X velocity
                     this.bounces++;
-                    nextX = Math.max(0, Math.min(canvas.width, nextX)); // Prevent sticking to walls
+                    nextX = this.x; // Prevent sticking to walls
                 }
-                if (nextY <= 0 || nextY >= canvas.height) {
-                    this.angle = -this.angle;
+                
+                if (nextY - this.radius <= borderWidth || nextY + this.radius >= canvas.height - borderWidth) {
+                    this.velocityY = -this.velocityY; // Reverse Y velocity
                     this.bounces++;
-                    nextY = Math.max(0, Math.min(canvas.height, nextY)); // Prevent sticking to walls
+                    nextY = this.y; // Prevent sticking to walls
                 }
 
-                // Obstacle bouncing
+                // Obstacle collision
                 let hitObstacle = false;
                 obstacles.forEach(obstacle => {
                     if (obstacle.checkCollision({x: nextX, y: nextY})) {
                         hitObstacle = true;
+                        
                         // Determine which side was hit
-                        const hitLeft = Math.abs(this.x - obstacle.x);
-                        const hitRight = Math.abs(this.x - (obstacle.x + obstacle.width));
-                        const hitTop = Math.abs(this.y - obstacle.y);
-                        const hitBottom = Math.abs(this.y - (obstacle.y + obstacle.height));
-                        const minDist = Math.min(hitLeft, hitRight, hitTop, hitBottom);
-
-                        if (minDist === hitLeft || minDist === hitRight) {
-                            this.angle = 180 - this.angle;
+                        const dx = nextX - (obstacle.x + obstacle.width / 2);
+                        const dy = nextY - (obstacle.y + obstacle.height / 2);
+                        
+                        if (Math.abs(dx) > Math.abs(dy)) {
+                            this.velocityX = -this.velocityX;
                         } else {
-                            this.angle = -this.angle;
+                            this.velocityY = -this.velocityY;
                         }
+                        
                         this.bounces++;
+                        nextX = this.x;
+                        nextY = this.y;
                     }
                 });
 
-                if (!hitObstacle) {
-                    this.x = nextX;
-                    this.y = nextY;
-                }
+                // Update position
+                this.x = nextX;
+                this.y = nextY;
+                
+                // Update angle based on velocity (for visual purposes)
+                this.angle = Math.atan2(this.velocityY, this.velocityX) * 180 / Math.PI + 90;
             }
         }
 
@@ -614,23 +631,16 @@
                     enemy.draw();
                 });
 
-                // Update all missiles
-                player.missiles.forEach((missile, index) => {
+                // Update and draw ALL missiles
+                [...player.missiles, ...enemies.flatMap(e => e.missiles)].forEach((missile, index) => {
                     missile.update();
                     missile.draw();
-                    if (missile.bounces >= missile.maxBounces) {
-                        player.missiles.splice(index, 1);
-                    }
                 });
 
+                // Clean up missiles that have bounced too many times
+                player.missiles = player.missiles.filter(m => m.bounces < m.maxBounces);
                 enemies.forEach(enemy => {
-                    enemy.missiles.forEach((missile, index) => {
-                        missile.update();
-                        missile.draw();
-                        if (missile.bounces >= missile.maxBounces) {
-                            enemy.missiles.splice(index, 1);
-                        }
-                    });
+                    enemy.missiles = enemy.missiles.filter(m => m.bounces < m.maxBounces);
                 });
 
                 checkCollisions();
