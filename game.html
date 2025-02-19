@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RugWarfare Tank Battle</title>
+    <link rel="icon" type="image/png" href="images/tank.png" sizes="512x512">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #gameCanvas {
+            border: 3px solid #ff6b6b;
+            background: #2d2d2d;
+        }
+
+        .home-button {
+            position: fixed;
+            top: 15px;
+            left: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 20px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .ui-container {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 15px;
+            border: 2px solid #ff6b6b;
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #33ff33);
+            transition: width 0.3s ease;
+        }
+
+        .level-counter {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+
+        .lives-counter {
+            color: white;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .life-icon {
+            color: #ff6b6b;
+            font-size: 1.4em;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="home-button">Back to Home</a>
+    
+    <!-- UI Container -->
+    <div class="ui-container">
+        <div class="level-counter">Level: <span id="level-number">1</span></div>
+        <div class="lives-counter">Lives: <span id="lives-display">3</span></div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        canvas.width = 800;
+        canvas.height = 600;
+
+        // Game objects
+        class Obstacle {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+            }
+
+            draw() {
+                ctx.fillStyle = '#555555';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                // Add a slight 3D effect
+                ctx.fillStyle = '#666666';
+                ctx.fillRect(this.x, this.y, this.width, 5);
+            }
+
+            checkCollision(missile) {
+                return missile.x > this.x && 
+                       missile.x < this.x + this.width &&
+                       missile.y > this.y && 
+                       missile.y < this.y + this.height;
+            }
+        }
+
+        class Tank {
+            constructor(x, y, color, controls, isPlayer = false) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.angle = 0;
+                this.speed = 4;
+                this.rotationSpeed = 4;
+                this.width = 30;
+                this.height = 20;
+                this.controls = controls;
+                this.missiles = [];
+                this.isPlayer = isPlayer;
+                this.isDead = false;
+                this.shootCooldown = 0;
+                this.maxShootCooldown = 90; // Increased cooldown for enemies
+                this.targetAngle = 0; // For cursor aiming
+                
+                // Player specific properties
+                if (isPlayer) {
+                    this.lives = 3;
+                }
+            }
+
+            update() {
+                if (this.isDead) return;
+
+                if (!this.isPlayer) {
+                    // Less accurate enemy AI targeting
+                    if (currentLevel >= 2) {
+                        const dx = player.x - this.x;
+                        const dy = player.y - this.y;
+                        const targetAngle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+                        
+                        // Add some randomness to targeting
+                        const randomOffset = (Math.random() - 0.5) * 20; // Random angle offset
+                        const angleDiff = (targetAngle + randomOffset) - this.angle;
+                        this.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), this.rotationSpeed);
+
+                        // Shoot less frequently and with less accuracy
+                        this.shootCooldown--;
+                        if (this.shootCooldown <= 0 && Math.abs(angleDiff) < 30) {
+                            this.shoot();
+                            this.shootCooldown = this.maxShootCooldown + Math.random() * 60; // Random delay
+                        }
+                    }
+                } else {
+                    // Player movement code
+                    let dx = 0;
+                    let dy = 0;
+
+                    if (keys[this.controls.up]) dy -= 1;
+                    if (keys[this.controls.down]) dy += 1;
+                    if (keys[this.controls.left]) dx -= 1;
+                    if (keys[this.controls.right]) dx += 1;
+
+                    if (dx !== 0 && dy !== 0) {
+                        const magnitude = Math.sqrt(dx * dx + dy * dy);
+                        dx = dx / magnitude;
+                        dy = dy / magnitude;
+                    }
+
+                    // Update position with collision check
+                    const newX = this.x + dx * this.speed;
+                    const newY = this.y + dy * this.speed;
+
+                    // Check obstacle collision before moving
+                    let canMove = true;
+                    obstacles.forEach(obstacle => {
+                        if (checkTankObstacleCollision(
+                            {x: newX, y: newY, width: this.width, height: this.height},
+                            obstacle
+                        )) {
+                            canMove = false;
+                        }
+                    });
+
+                    if (canMove) {
+                        this.x = newX;
+                        this.y = newY;
+                    }
+
+                    // Update tank angle based on cursor position
+                    const dx2 = mouseX - this.x;
+                    const dy2 = mouseY - this.y;
+                    this.angle = Math.atan2(dy2, dx2) * 180 / Math.PI + 90;
+                }
+
+                // Keep tank within bounds
+                this.x = Math.max(this.width/2, Math.min(canvas.width - this.width/2, this.x));
+                this.y = Math.max(this.height/2, Math.min(canvas.height - this.height/2, this.y));
+            }
+
+            hit() {
+                if (this.isPlayer) {
+                    this.lives--;
+                    updateLivesDisplay(this.lives);
+                    if (this.lives <= 0) {
+                        this.isDead = true;
+                        gameOver();
+                        return true;
+                    }
+                } else {
+                    this.isDead = true;
+                    return true;
+                }
+                return false;
+            }
+
+            draw() {
+                if (this.isDead) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle * Math.PI / 180);
+                
+                // Tank body
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                
+                // Tank cannon
+                ctx.fillRect(-2, -this.height/2, 4, -15);
+                
+                ctx.restore();
+            }
+
+            shoot() {
+                if (this.missiles.length < 3) { // Limit missiles
+                    const angle = this.isPlayer ? 
+                        Math.atan2(mouseY - this.y, mouseX - this.x) * 180 / Math.PI + 90 :
+                        this.angle;
+                        
+                    this.missiles.push(new Missile(
+                        this.x + Math.cos((angle - 90) * Math.PI / 180) * 20,
+                        this.y + Math.sin((angle - 90) * Math.PI / 180) * 20,
+                        angle,
+                        this.color
+                    ));
+                }
+            }
+        }
+
+        class Missile {
+            constructor(x, y, angle, color) {
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.speed = 7;
+                this.color = color;
+                this.radius = 3;
+                this.bounces = 0;
+                this.maxBounces = 3;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.fillStyle = this.color;
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            update() {
+                // Calculate next position
+                let nextX = this.x + Math.cos((this.angle - 90) * Math.PI / 180) * this.speed;
+                let nextY = this.y + Math.sin((this.angle - 90) * Math.PI / 180) * this.speed;
+
+                // Wall bouncing
+                if (nextX <= 0 || nextX >= canvas.width) {
+                    this.angle = 180 - this.angle;
+                    this.bounces++;
+                    nextX = Math.max(0, Math.min(canvas.width, nextX)); // Prevent sticking to walls
+                }
+                if (nextY <= 0 || nextY >= canvas.height) {
+                    this.angle = -this.angle;
+                    this.bounces++;
+                    nextY = Math.max(0, Math.min(canvas.height, nextY)); // Prevent sticking to walls
+                }
+
+                // Obstacle bouncing
+                let hitObstacle = false;
+                obstacles.forEach(obstacle => {
+                    if (obstacle.checkCollision({x: nextX, y: nextY})) {
+                        hitObstacle = true;
+                        // Determine which side was hit
+                        const hitLeft = Math.abs(this.x - obstacle.x);
+                        const hitRight = Math.abs(this.x - (obstacle.x + obstacle.width));
+                        const hitTop = Math.abs(this.y - obstacle.y);
+                        const hitBottom = Math.abs(this.y - (obstacle.y + obstacle.height));
+                        const minDist = Math.min(hitLeft, hitRight, hitTop, hitBottom);
+
+                        if (minDist === hitLeft || minDist === hitRight) {
+                            this.angle = 180 - this.angle;
+                        } else {
+                            this.angle = -this.angle;
+                        }
+                        this.bounces++;
+                    }
+                });
+
+                if (!hitObstacle) {
+                    this.x = nextX;
+                    this.y = nextY;
+                }
+            }
+        }
+
+        // Collision detection helper
+        function checkTankObstacleCollision(tank, obstacle) {
+            return tank.x + tank.width/2 > obstacle.x &&
+                   tank.x - tank.width/2 < obstacle.x + obstacle.width &&
+                   tank.y + tank.height/2 > obstacle.y &&
+                   tank.y - tank.height/2 < obstacle.y + obstacle.height;
+        }
+
+        // Extended levels array
+        const levels = [
+            {
+                name: "Level 1",
+                enemies: [
+                    { x: 700, y: 100, color: '#4287f5' },
+                    { x: 700, y: 500, color: '#4287f5' }
+                ],
+                obstacles: [
+                    { x: 300, y: 200, width: 50, height: 200 },
+                    { x: 500, y: 200, width: 50, height: 200 }
+                ]
+            },
+            {
+                name: "Level 2",
+                enemies: [
+                    { x: 700, y: 100, color: '#4287f5' },
+                    { x: 700, y: 300, color: '#4287f5' },
+                    { x: 700, y: 500, color: '#4287f5' }
+                ],
+                obstacles: [
+                    { x: 400, y: 100, width: 50, height: 150 },
+                    { x: 400, y: 350, width: 50, height: 150 }
+                ]
+            },
+            {
+                name: "Level 3",
+                enemies: [
+                    { x: 700, y: 200, color: '#4287f5' },
+                    { x: 700, y: 400, color: '#4287f5' },
+                    { x: 600, y: 300, color: '#4287f5' }
+                ],
+                obstacles: [
+                    { x: 300, y: 150, width: 50, height: 300 },
+                    { x: 500, y: 150, width: 50, height: 300 }
+                ]
+            },
+            {
+                name: "Level 4",
+                enemies: [
+                    { x: 600, y: 150, color: '#4287f5' },
+                    { x: 600, y: 450, color: '#4287f5' },
+                    { x: 700, y: 300, color: '#4287f5' },
+                    { x: 500, y: 300, color: '#4287f5' }
+                ],
+                obstacles: [
+                    { x: 350, y: 100, width: 50, height: 150 },
+                    { x: 350, y: 350, width: 50, height: 150 },
+                    { x: 200, y: 250, width: 150, height: 50 }
+                ]
+            },
+            {
+                name: "Level 5",
+                enemies: [
+                    { x: 650, y: 150, color: '#4287f5' },
+                    { x: 650, y: 450, color: '#4287f5' },
+                    { x: 750, y: 300, color: '#4287f5' },
+                    { x: 550, y: 300, color: '#4287f5' },
+                    { x: 650, y: 300, color: '#4287f5' }
+                ],
+                obstacles: [
+                    { x: 300, y: 100, width: 50, height: 400 },
+                    { x: 450, y: 100, width: 50, height: 400 },
+                    { x: 200, y: 275, width: 400, height: 50 }
+                ]
+            }
+        ];
+
+        let currentLevel = 0;
+        let enemies = [];
+        let obstacles = [];
+
+        // Helper function to check if a position is safe (not inside obstacles)
+        function isSafePosition(x, y, width, height) {
+            for (let obstacle of obstacles) {
+                if (checkTankObstacleCollision(
+                    {x, y, width, height},
+                    obstacle
+                )) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Helper function to find a safe spawn position
+        function findSafePosition(baseX, baseY) {
+            const offsets = [
+                {x: 0, y: 0},
+                {x: 50, y: 0},
+                {x: -50, y: 0},
+                {x: 0, y: 50},
+                {x: 0, y: -50}
+            ];
+
+            for (let offset of offsets) {
+                const newX = baseX + offset.x;
+                const newY = baseY + offset.y;
+                if (isSafePosition(newX, newY, 30, 20)) {
+                    return {x: newX, y: newY};
+                }
+            }
+            return {x: 100, y: 300}; // Default safe position if no others found
+        }
+
+        function initLevel(levelIndex) {
+            // Find safe starting position for player
+            const safePos = findSafePosition(100, 300);
+            player.x = safePos.x;
+            player.y = safePos.y;
+            
+            enemies = [];
+            obstacles = [];
+            updateLevelCounter(levelIndex);
+            
+            // Create obstacles first
+            levels[levelIndex].obstacles.forEach(obs => {
+                obstacles.push(new Obstacle(obs.x, obs.y, obs.width, obs.height));
+            });
+
+            // Create enemies in safe positions
+            levels[levelIndex].enemies.forEach(enemy => {
+                const safePos = findSafePosition(enemy.x, enemy.y);
+                enemies.push(new Tank(safePos.x, safePos.y, enemy.color, {}));
+            });
+        }
+
+        // Create player
+        const player = new Tank(100, 300, '#ff6b6b', {
+            up: 'w',
+            down: 's',
+            left: 'a',
+            right: 'd',
+            shoot: ' '
+        }, true);
+
+        // Modified collision detection
+        function checkCollisions() {
+            // Player missiles
+            player.missiles.forEach((missile, missileIndex) => {
+                enemies.forEach((enemy) => {
+                    if (!enemy.isDead) {
+                        const dx = missile.x - enemy.x;
+                        const dy = missile.y - enemy.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < enemy.width/2 + missile.radius) {
+                            if (enemy.hit()) {
+                                checkLevelComplete();
+                            }
+                            player.missiles.splice(missileIndex, 1);
+                        }
+                    }
+                });
+            });
+
+            // Enemy missiles
+            enemies.forEach(enemy => {
+                enemy.missiles.forEach((missile, missileIndex) => {
+                    if (!player.isDead) {
+                        const dx = missile.x - player.x;
+                        const dy = missile.y - player.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < player.width/2 + missile.radius) {
+                            player.hit();
+                            enemy.missiles.splice(missileIndex, 1);
+                        }
+                    }
+                });
+            });
+        }
+
+        function checkLevelComplete() {
+            if (enemies.every(enemy => enemy.isDead)) {
+                if (currentLevel < levels.length - 1) {
+                    currentLevel++;
+                    setTimeout(() => {
+                        initLevel(currentLevel);
+                    }, 1000);
+                } else {
+                    // Game complete!
+                    console.log("Game Complete!");
+                }
+            }
+        }
+
+        // Key handling
+        const keys = {};
+        document.addEventListener('keydown', e => keys[e.key] = true);
+        document.addEventListener('keyup', e => keys[e.key] = false);
+        document.addEventListener('keypress', e => {
+            if (e.key === player.controls.shoot) player.shoot();
+        });
+
+        // UI Update Functions
+        function updateLivesDisplay(lives) {
+            document.getElementById('lives-display').textContent = lives;
+        }
+
+        function updateLevelCounter(level) {
+            document.getElementById('level-number').textContent = level + 1;
+        }
+
+        function gameOver() {
+            setTimeout(() => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.8);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                `;
+
+                const gameOverBox = document.createElement('div');
+                gameOverBox.style.cssText = `
+                    background: #2d2d2d;
+                    padding: 40px;
+                    border-radius: 20px;
+                    text-align: center;
+                    border: 3px solid #ff6b6b;
+                `;
+
+                gameOverBox.innerHTML = `
+                    <h2 style="color: #ff6b6b; margin-bottom: 20px; font-size: 2em;">Game Over!</h2>
+                    <p style="color: white; margin-bottom: 30px;">You reached Level ${currentLevel + 1}</p>
+                    <button onclick="location.reload()" style="
+                        background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 25px;
+                        color: white;
+                        font-size: 1.1em;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                    ">Try Again</button>
+                `;
+
+                overlay.appendChild(gameOverBox);
+                document.body.appendChild(overlay);
+            }, 500);
+        }
+
+        // Modified game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!player.isDead) {
+                // Draw obstacles first
+                obstacles.forEach(obstacle => obstacle.draw());
+
+                player.update();
+                player.draw();
+
+                enemies.forEach(enemy => {
+                    enemy.update();
+                    enemy.draw();
+                });
+
+                // Update all missiles
+                player.missiles.forEach((missile, index) => {
+                    missile.update();
+                    missile.draw();
+                    if (missile.bounces >= missile.maxBounces) {
+                        player.missiles.splice(index, 1);
+                    }
+                });
+
+                enemies.forEach(enemy => {
+                    enemy.missiles.forEach((missile, index) => {
+                        missile.update();
+                        missile.draw();
+                        if (missile.bounces >= missile.maxBounces) {
+                            enemy.missiles.splice(index, 1);
+                        }
+                    });
+                });
+
+                checkCollisions();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Mouse tracking
+        let mouseX = 0;
+        let mouseY = 0;
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
+        // Mouse click for shooting
+        canvas.addEventListener('click', () => {
+            if (!player.isDead) {
+                player.shoot();
+            }
+        });
+
+        // Initialize game
+        initLevel(0);
+        updateLivesDisplay(3);
+        gameLoop();
+    </script>
+</body>
+</html>
