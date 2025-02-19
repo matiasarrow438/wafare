@@ -67,6 +67,7 @@
             font-size: 3em;
             margin: 20px 0;
             animation: bounce 2s infinite;
+            display: block;
         }
 
         @keyframes progress-animation {
@@ -101,9 +102,33 @@
             font-size: 1.2em;
             margin-top: 30px;
         }
+
+        .home-button {
+            position: fixed;
+            top: 15px;
+            left: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 20px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            user-select: none;
+        }
+
+        .home-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
     </style>
 </head>
 <body>
+    <a href="home.html" class="home-button">Back to Home</a>
     <div class="maintenance-container">
         <div class="tank-emoji">🎮</div>
         <h1>Tank Game Under Development</h1>
