@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RugWarfare Tank Battle</title>
     <link rel="icon" type="image/png" href="images/tank.png" sizes="512x512">
     <style>
@@ -487,6 +487,24 @@
         @media (max-width: 768px) {
             .joystick-container {
                 display: block;
+            }
+        }
+
+        /* Update canvas styling for mobile */
+        @media (max-width: 768px) {
+            canvas {
+                width: 100%;
+                height: 100vh;
+                touch-action: none;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+                height: 100%;
             }
         }
     </style>
@@ -1092,7 +1110,20 @@
                 checkCollisions();
             }
 
+            // Scale canvas context for mobile
+            if (isMobile()) {
+                ctx.save();
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = rect.width / canvas.width;
+                const scaleY = rect.height / canvas.height;
+                ctx.scale(1/scaleX, 1/scaleY);
+            }
+            
             requestAnimationFrame(gameLoop);
+            
+            if (isMobile()) {
+                ctx.restore();
+            }
         }
 
         // Mouse tracking
@@ -1211,10 +1242,22 @@
                 let normalizedX = moveX / maxDistance;
                 let normalizedY = moveY / maxDistance;
                 
-                player.x += normalizedX * player.speed;
-                player.y += normalizedY * player.speed;
+                // Calculate new position
+                let newX = player.x + normalizedX * player.speed;
+                let newY = player.y + normalizedY * player.speed;
                 
-                // Update tank angle
+                // Check boundaries before moving
+                const borderWidth = 3;
+                if (newX - player.width/2 > borderWidth && 
+                    newX + player.width/2 < canvas.width - borderWidth) {
+                    player.x = newX;
+                }
+                if (newY - player.height/2 > borderWidth && 
+                    newY + player.height/2 < canvas.height - borderWidth) {
+                    player.y = newY;
+                }
+                
+                // Update tank angle to match movement direction
                 if (Math.abs(normalizedX) > 0.1 || Math.abs(normalizedY) > 0.1) {
                     player.angle = Math.atan2(normalizedY, normalizedX) * 180 / Math.PI + 90;
                 }
@@ -1226,16 +1269,24 @@
             joystickStick.style.transform = 'translate(0px, 0px)';
         });
 
-        // Add touch shooting
+        // Update shooting for mobile
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (!player.isDead) {
                 const rect = canvas.getBoundingClientRect();
-                const touchX = e.touches[0].clientX - rect.left;
-                const touchY = e.touches[0].clientY - rect.top;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const touchX = (e.touches[0].clientX - rect.left) * scaleX;
+                const touchY = (e.touches[0].clientY - rect.top) * scaleY;
                 
                 mouseX = touchX;
                 mouseY = touchY;
+                
+                // Calculate angle between tank and touch point
+                const dx = touchX - player.x;
+                const dy = touchY - player.y;
+                player.angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
                 
                 player.shoot();
             }
@@ -1253,6 +1304,28 @@
                 joystickContainer.style.display = 'block';
             }
         });
+
+        // Update canvas size based on screen
+        function resizeCanvas() {
+            if (isMobile()) {
+                const screenWidth = window.innerWidth;
+                const screenHeight = window.innerHeight;
+                
+                // Set canvas size while maintaining aspect ratio
+                if (screenWidth < screenHeight) {
+                    canvas.width = screenWidth * 0.95;
+                    canvas.height = canvas.width * (3/4); // Maintain 4:3 ratio
+                } else {
+                    canvas.height = screenHeight * 0.95;
+                    canvas.width = canvas.height * (4/3);
+                }
+            }
+        }
+
+        // Call resize on load and orientation change
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('orientationchange', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
     </script>
 </body>
 </html>
