@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Mini Games</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            width: 100%;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            color: white;
+        }
+
+        .games-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 40px;
+            flex-wrap: wrap;
+            max-width: 1200px;
+        }
+
+        .game-card {
+            background: #2d2d2d;
+            border-radius: 20px;
+            padding: 30px;
+            width: 300px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+        }
+
+        .game-image {
+            width: 200px;
+            height: 200px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            object-fit: cover;
+        }
+
+        .game-title {
+            font-size: 1.8em;
+            color: #ff6b6b;
+            margin-bottom: 15px;
+        }
+
+        .game-description {
+            color: #cccccc;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .play-button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .play-button:hover {
+            transform: scale(1.05);
+        }
+
+        .home-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 20px;
+            color: white;
+            font-size: 1.1em;
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .home-button:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .games-container {
+                padding: 20px;
+            }
+
+            .game-card {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="home.html" class="home-button">Back to Home</a>
+    
+    <div class="header">
+        <h1>Our Mini Games Collection</h1>
+    </div>
+
+    <div class="games-container">
+        <div class="game-card">
+            <img src="images/tank.png" alt="Tank Battle" class="game-image">
+            <h2 class="game-title">RugWarfare Tank Battle</h2>
+            <p class="game-description">
+                Enter the arena in this intense tank combat game! Navigate through challenging levels 
+                with strategic obstacle layouts and increasingly intelligent enemy tanks. Use your 
+                bouncing projectiles wisely, manage your three lives, and see how far you can progress. 
+                Features include mouse-aimed shooting, WASD movement controls, and mobile touch support 
+                for on-the-go gaming.
+            </p>
+            <a href="gamerug.html" class="play-button">Play Now</a>
+        </div>
+
+        <div class="game-card">
+            <img src="images/tank.png" alt="Classic Tank Battle" class="game-image">
+            <h2 class="game-title">Classic Tank Battle</h2>
+            <p class="game-description">
+                Experience the original tank combat challenge! Battle against enemy tanks in a 
+                straightforward arena setting. Test your reflexes and tactical skills as you 
+                maneuver through the battlefield. Features classic tank controls, simple yet 
+                engaging gameplay, and the original tank battle experience that started it all.
+            </p>
+            <a href="game.html" class="play-button">Play Now</a>
+        </div>
+    </div>
+</body>
+</html>
