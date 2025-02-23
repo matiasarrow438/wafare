@@ -532,28 +532,28 @@
                 }
 
                 if (!this.isPlayer) {
-                    // Enemy AI targeting with progressive difficulty
-                    if (currentLevel >= 2) {
-                        const dx = player.x - this.x;
-                        const dy = player.y - this.y;
-                        const targetAngle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
-                        
-                        // Progressive accuracy based on level
-                        const accuracyMultiplier = Math.min(1, 0.2 + (currentLevel * 0.05));
-                        const maxRandomOffset = 40 * (1 - accuracyMultiplier); // Decreases as levels progress
-                        const randomOffset = (Math.random() - 0.5) * maxRandomOffset;
-                        
-                        const angleDiff = (targetAngle + randomOffset) - this.angle;
-                        this.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), this.rotationSpeed * accuracyMultiplier);
+                    // Enemy AI targeting with more gradual difficulty
+                    const dx = player.x - this.x;
+                    const dy = player.y - this.y;
+                    const targetAngle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+                    
+                    // Ensure accuracy never drops to zero at higher levels
+                    const accuracyMultiplier = Math.min(0.6, 0.05 + (currentLevel * 0.02));
+                    const maxRandomOffset = 90 * (1 - accuracyMultiplier);
+                    const randomOffset = (Math.random() - 0.5) * maxRandomOffset;
+                    
+                    const angleDiff = (targetAngle + randomOffset) - this.angle;
+                    this.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), this.rotationSpeed * accuracyMultiplier);
 
-                        // Shooting frequency increases with level
-                        this.shootCooldown--;
-                        const accuracyThreshold = 30 * (1 - accuracyMultiplier); // Tighter threshold at higher levels
-                        if (this.shootCooldown <= 0 && Math.abs(angleDiff) < accuracyThreshold) {
-                            this.shoot();
-                            // Shooting delay decreases with level
-                            this.shootCooldown = this.maxShootCooldown + (Math.random() * 120 * (1 - accuracyMultiplier));
-                        }
+                    // Always allow shooting with controlled frequency
+                    this.shootCooldown--;
+                    const accuracyThreshold = 60 * (1 - accuracyMultiplier);
+                    if (this.shootCooldown <= 0 && Math.abs(angleDiff) < accuracyThreshold) {
+                        this.shoot();
+                        // Ensure minimum delay between shots
+                        const minDelay = 60; // Minimum 1 second between shots
+                        const levelDelay = Math.max(0, 240 * (1 - accuracyMultiplier));
+                        this.shootCooldown = this.maxShootCooldown + minDelay + levelDelay;
                     }
                 } else {
                     // Player movement code
@@ -840,6 +840,39 @@
             return {x: 100, y: 300}; // Default safe position if no others found
         }
 
+        // Add this new class for life pickups
+        class LifePickup {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 20;
+                this.height = 20;
+                this.collected = false;
+            }
+
+            draw() {
+                if (this.collected) return;
+                
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + this.height/2);
+                ctx.lineTo(this.x + this.width/2, this.y);
+                ctx.lineTo(this.x + this.width, this.y + this.height/2);
+                ctx.lineTo(this.x + this.width/2, this.y + this.height);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            checkCollision(tank) {
+                if (this.collected) return false;
+                return Math.abs(tank.x - (this.x + this.width/2)) < (tank.width/2 + this.width/2) &&
+                       Math.abs(tank.y - (this.y + this.height/2)) < (tank.height/2 + this.height/2);
+            }
+        }
+
+        // Add this to your global variables
+        let lifePickups = [];
+
         function initLevel(levelIndex) {
             const safePos = findSafePosition(100, 300);
             player.x = safePos.x;
@@ -863,6 +896,13 @@
                 const safePos = findSafePosition(enemy.x, enemy.y);
                 enemies.push(new Tank(safePos.x, safePos.y, enemy.color, {}));
             });
+
+            // Add life pickup every 3 levels
+            lifePickups = [];
+            if (levelIndex > 0 && levelIndex % 3 === 0) {
+                const safePos = findSafePosition(400, 300); // Different position from player spawn
+                lifePickups.push(new LifePickup(safePos.x, safePos.y));
+            }
         }
 
         // Create player
@@ -978,6 +1018,16 @@
                 player.missiles = player.missiles.filter(m => m.bounces < m.maxBounces);
                 enemies.forEach(enemy => {
                     enemy.missiles = enemy.missiles.filter(m => m.bounces < m.maxBounces);
+                });
+
+                // Draw and check life pickups
+                lifePickups.forEach(pickup => {
+                    pickup.draw();
+                    if (!pickup.collected && pickup.checkCollision(player)) {
+                        pickup.collected = true;
+                        player.lives = Math.min(player.lives + 1, 5); // Cap at 5 lives
+                        updateLivesDisplay(player.lives);
+                    }
                 });
 
                 checkCollisions();
